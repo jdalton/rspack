@@ -66,7 +66,9 @@ class EnvironmentPlugin {
       const defValue =
         value === undefined ? 'undefined' : JSON.stringify(value);
       definitions[`process.env.${key}`] = defValue;
-      definitions[`import.meta.env.${key}`] = defValue;
+      if (compiler.options.experiments.env) {
+        definitions[`import.meta.env.${key}`] = defValue;
+      }
     }
     new DefinePlugin(definitions).apply(compiler);
   }
