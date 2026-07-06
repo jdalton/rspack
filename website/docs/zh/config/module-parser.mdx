@@ -421,25 +421,6 @@ export default {
 
 `resolve` 只控制已经启用的 [`import.meta.resolve()`](#javascriptimportmetaresolve) 表达式是否在编译期处理。要使用 `import.meta.resolve()`，仍然需要启用 `javascript.importMetaResolve`。
 
-### javascript.importMetaContext
-
-- **类型：** `boolean`
-- **默认值：** `true`
-
-用于控制 Rspack 是否解析 `import.meta.webpackContext()` 调用。当同时配置了 `javascript.importMeta.webpackContext` 和 `javascript.importMetaContext` 时，`javascript.importMeta.webpackContext` 的优先级更高。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importMetaContext: false,
-      },
-    },
-  },
-};
-```
-
 ### javascript.exportsPresence
 
 <PropertyType

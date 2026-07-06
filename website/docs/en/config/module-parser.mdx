@@ -421,25 +421,6 @@ export default {
 
 `resolve` only controls whether an already enabled [`import.meta.resolve()`](#javascriptimportmetaresolve) expression is handled at compile time. To use `import.meta.resolve()`, you still need to enable `javascript.importMetaResolve`.
 
-### javascript.importMetaContext
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Control whether Rspack parses `import.meta.webpackContext()` calls. When both `javascript.importMeta.webpackContext` and `javascript.importMetaContext` are configured, `javascript.importMeta.webpackContext` has higher priority.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importMetaContext: false,
-      },
-    },
-  },
-};
-```
-
 ### javascript.exportsPresence
 
 <PropertyType

@@ -300,7 +300,6 @@ pub struct RawJavascriptParserOptions {
   pub override_strict: Option<String>,
   #[napi(ts_type = "string | RawImportMetaOptions")]
   pub import_meta: Option<Either<String, RawImportMetaOptions>>,
-  pub import_meta_context: Option<bool>,
   pub commonjs_magic_comments: Option<bool>,
   #[napi(ts_type = "boolean | string")]
   pub create_require: Option<Either<bool, String>>,
@@ -443,7 +442,6 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
         Either::A(value) => ImportMeta::from(value.as_str()),
         Either::B(value) => ImportMeta::Granular(value.into()),
       }),
-      import_meta_context: value.import_meta_context,
       require_alias: value.require_alias,
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,

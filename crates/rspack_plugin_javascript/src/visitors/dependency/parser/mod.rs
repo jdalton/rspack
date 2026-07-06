@@ -481,8 +481,7 @@ impl<'parser> JavascriptParser<'parser> {
         .unwrap_or(ImportMeta::Enabled);
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin {
-          webpack_context: import_meta
-            .is_webpack_context_enabled(javascript_options.import_meta_context),
+          webpack_context: import_meta.is_webpack_context_enabled(),
           glob: import_meta.is_glob_enabled(),
         },
       ));

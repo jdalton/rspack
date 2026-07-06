@@ -1254,11 +1254,6 @@ export type ImportMetaParserOptions = {
    * Enable/disable evaluating import.meta.webpackContext.
    */
   webpackContext?: boolean;
-
-  /**
-   * Enable/disable evaluating custom import.meta keys.
-   */
-  [key: string]: boolean | undefined;
 };
 
 export type JavascriptParserOptions = {
@@ -1290,11 +1285,6 @@ export type JavascriptParserOptions = {
    * Enable or disable evaluating import.meta. Set to 'preserve-unknown' or use an object to preserve unknown properties for runtime evaluation.
    */
   importMeta?: boolean | 'preserve-unknown' | ImportMetaParserOptions;
-
-  /**
-   * Enable or disable evaluating import.meta.webpackContext. importMeta.webpackContext has higher priority when both are configured.
-   */
-  importMetaContext?: boolean;
 
   /**
    * Enable parsing of new URL() syntax.

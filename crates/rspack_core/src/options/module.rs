@@ -383,13 +383,11 @@ impl ImportMeta {
       .is_none_or(|property| self.is_property_enabled(property))
   }
 
-  pub fn is_webpack_context_enabled(&self, import_meta_context: Option<bool>) -> bool {
+  pub fn is_webpack_context_enabled(&self) -> bool {
     match self {
       Self::Disabled => false,
-      Self::Granular(options) => options
-        .webpack_context
-        .unwrap_or_else(|| import_meta_context.unwrap_or(true)),
-      Self::Enabled | Self::PreserveUnknown => import_meta_context.unwrap_or(true),
+      Self::Granular(options) => options.webpack_context.unwrap_or(true),
+      Self::Enabled | Self::PreserveUnknown => true,
     }
   }
 
@@ -418,7 +416,6 @@ pub struct JavascriptParserOptions {
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,
   pub import_meta: Option<ImportMeta>,
-  pub import_meta_context: Option<bool>,
   pub require_alias: Option<bool>,
   pub require_as_expression: Option<bool>,
   pub require_dynamic: Option<bool>,

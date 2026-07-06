@@ -6,7 +6,6 @@ module.exports = {
   module: {
     parser: {
       javascript: {
-        importMetaContext: false,
         importMeta: {
           url: false,
           webpack: true,

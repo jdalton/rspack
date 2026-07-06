@@ -2509,7 +2509,6 @@ export interface RawJavascriptParserOptions {
   worker?: Array<string>
   overrideStrict?: string
   importMeta?: string | RawImportMetaOptions
-  importMetaContext?: boolean
   commonjsMagicComments?: boolean
   createRequire?: boolean | string
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
