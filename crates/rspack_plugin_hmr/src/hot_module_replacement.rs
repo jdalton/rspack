@@ -5,7 +5,7 @@ use rspack_core::{
   RuntimeModuleRuntimeRequirements, RuntimeTemplate, impl_runtime_module,
   runtime_mode::RuntimeMode,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::{extract_runtime_globals_from_ejs, runtime_conditioned_name};
 use rspack_util::test::is_hot_test;
 
 static HOT_MODULE_REPLACEMENT_TEMPLATE: &str = include_str!("runtime/hot_module_replacement.ejs");
@@ -46,6 +46,11 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
       Some(serde_json::json!({
         "_is_hot_test": is_hot_test(),
         "_is_rspack_runtime_mode": context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack,
+        "_installed_modules": runtime_conditioned_name(
+          context.compilation.options.experiments.runtime_mode,
+          "installedModules",
+          "hmrInstalledModules",
+        ),
       })),
     )?;
 

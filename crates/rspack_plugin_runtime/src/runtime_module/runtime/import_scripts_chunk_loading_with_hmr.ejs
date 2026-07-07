@@ -1,4 +1,4 @@
-function importScriptsLoadUpdateChunk(chunkId, updatedModulesList) {
+function <%- _load_update_chunk %>(chunkId, updatedModulesList) {
   var success = false;
   <%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("_, moreModules, runtime") %> {
       for (var moduleId in moreModules) {

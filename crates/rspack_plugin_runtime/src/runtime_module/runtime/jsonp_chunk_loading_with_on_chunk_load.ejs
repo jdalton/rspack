@@ -1,1 +1,1 @@
-<%- ON_CHUNKS_LOADED %>.j = <%- returningFunction("jsonpInstalledChunks[chunkId] === 0", "chunkId") %>;
+<%- ON_CHUNKS_LOADED %>.j = <%- returningFunction(_installed_chunks + "[chunkId] === 0", "chunkId") %>;

@@ -14,7 +14,10 @@ use crate::{
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::{
     generate_javascript_hmr_runtime,
-    utils::{get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks},
+    utils::{
+      get_initial_chunk_ids, render_hmr_runtime_state_expression, runtime_conditioned_name,
+      stringify_chunks,
+    },
   },
 };
 
@@ -294,6 +297,13 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     let root_output_dir = get_output_dir(chunk, compilation, true).await?;
     let import_function_name = &compilation.options.output.import_function_name;
+    let runtime_mode = compilation.options.experiments.runtime_mode;
+    let installed_chunks =
+      runtime_conditioned_name(runtime_mode, "installedChunks", "moduleInstalledChunks");
+    let install_chunk =
+      runtime_conditioned_name(runtime_mode, "installChunk", "moduleInstallChunk");
+    let load_update_chunk =
+      runtime_conditioned_name(runtime_mode, "loadUpdateChunk", "moduleLoadUpdateChunk");
 
     let mut source = String::default();
 
@@ -313,7 +323,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, Promise] = chunk loading, 0 = chunk loaded
-      var moduleInstalledChunks = {}{};
+      var {installed_chunks} = {}{};
       "#,
       match with_hmr {
         true => {
@@ -330,6 +340,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         &self.template(TemplateId::Raw),
         Some(serde_json::json!({
           "_modules": runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
+          "_installed_chunks": installed_chunks,
+          "_install_chunk": install_chunk,
           "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;
@@ -341,7 +353,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     if with_loading {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-        "moduleInstalledChunks[chunkId] = 0;".to_string()
+        format!("{installed_chunks}[chunkId] = 0;")
       } else {
         runtime_template.render(
           &self.template(TemplateId::WithLoading),
@@ -349,10 +361,12 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
             "_js_matcher": &has_js_matcher.render("chunkId"),
             "_import_function_name":&compilation.options.output.import_function_name,
             "_output_dir": &root_output_dir,
+            "_installed_chunks": installed_chunks,
+            "_install_chunk": install_chunk,
             "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
-              ""
+              String::new()
             } else {
-              "else moduleInstalledChunks[chunkId] = 0;\n"
+              format!("else {installed_chunks}[chunkId] = 0;\n")
             },
           })),
         )?
@@ -400,6 +414,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_link_prefetch": &res.code,
             "_js_matcher": &js_matcher,
+            "_installed_chunks": installed_chunks,
             "_is_neutral_platform": is_neutral_platform
           })),
         )?;
@@ -433,6 +448,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
             "_link_preload": &res.code,
+            "_installed_chunks": installed_chunks,
             "_is_neutral_platform": is_neutral_platform
           })),
         )?;
@@ -444,7 +460,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     if with_external_install_chunk {
       source.push_str(&format!(
         r#"
-        {} = moduleInstallChunk;
+        {} = {install_chunk};
         "#,
         runtime_template.render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
       ));
@@ -456,7 +472,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       source.push_str(&format!(
         r#"
         {}.j = function(chunkId) {{
-            return moduleInstalledChunks[chunkId] === 0;
+            return {installed_chunks}[chunkId] === 0;
         }}
         "#,
         runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)
@@ -474,6 +490,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         generate_javascript_hmr_runtime(
           &self.template(TemplateId::HmrRuntime),
           "module",
+          runtime_mode,
           runtime_template
         )?,
         runtime_template.render(
@@ -481,6 +498,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_modules": runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
             "_import_function_name": import_function_name,
+            "_load_update_chunk": load_update_chunk,
           })),
         )?
       ))

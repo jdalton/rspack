@@ -1,7 +1,7 @@
-var chunkPrefetchChunkToChildrenMap = <%- _chunk_map %>;
+var <%- _chunk_to_children_map %> = <%- _chunk_map %>;
 <%- ENSURE_CHUNK_HANDLERS %>.prefetch = <%- basicFunction("chunkId, promises") %> {
   Promise.all(promises).then(<%- basicFunction("") %> {
-    var chunks = chunkPrefetchChunkToChildrenMap[chunkId];
+    var chunks = <%- _chunk_to_children_map %>[chunkId];
     Array.isArray(chunks) && chunks.map(<%- PREFETCH_CHUNK %>);
   });
 };

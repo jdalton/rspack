@@ -11,7 +11,8 @@ use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
-    get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
+    get_initial_chunk_ids, render_hmr_runtime_state_expression, runtime_conditioned_name,
+    stringify_chunks,
   },
 };
 
@@ -262,6 +263,13 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     let has_js_matcher = compile_boolean_matcher(&condition_map);
     let initial_chunks = get_initial_chunk_ids(self.chunk(), compilation, chunk_has_js);
     let root_output_dir = get_output_dir(chunk, compilation, true).await?;
+    let runtime_mode = compilation.options.experiments.runtime_mode;
+    let installed_chunks =
+      runtime_conditioned_name(runtime_mode, "installedChunks", "requireInstalledChunks");
+    let install_chunk =
+      runtime_conditioned_name(runtime_mode, "installChunk", "requireInstallChunk");
+    let load_update_chunk =
+      runtime_conditioned_name(runtime_mode, "loadUpdateChunk", "requireLoadUpdateChunk");
 
     let mut source = String::default();
 
@@ -277,21 +285,25 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     if with_hmr {
       let state_expression = render_hmr_runtime_state_expression(runtime_template, "require");
       source.push_str(&format!(
-        "var requireInstalledChunks = {} = {} || {};\n",
+        "var {installed_chunks} = {} = {} || {};\n",
         state_expression,
         state_expression,
         &stringify_chunks(&initial_chunks, 1)
       ));
     } else {
       source.push_str(&format!(
-        "var requireInstalledChunks = {};\n",
+        "var {installed_chunks} = {};\n",
         &stringify_chunks(&initial_chunks, 1)
       ));
     }
 
     if with_on_chunk_load {
-      let source_with_on_chunk_load =
-        runtime_template.render(&self.template_id(TemplateId::WithOnChunkLoad), None)?;
+      let source_with_on_chunk_load = runtime_template.render(
+        &self.template_id(TemplateId::WithOnChunkLoad),
+        Some(serde_json::json!({
+          "_installed_chunks": installed_chunks,
+        })),
+      )?;
       source.push_str(&source_with_on_chunk_load);
     }
 
@@ -304,6 +316,8 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
                 .render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)),
             false => String::new(),
           },
+          "_installed_chunks": installed_chunks,
+          "_install_chunk": install_chunk,
         })),
       )?;
 
@@ -312,8 +326,12 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
 
     if with_loading {
       if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-        let source_with_loading =
-          runtime_template.render(&self.template_id(TemplateId::WithLoading), None)?;
+        let source_with_loading = runtime_template.render(
+          &self.template_id(TemplateId::WithLoading),
+          Some(serde_json::json!({
+            "_installed_chunks": installed_chunks,
+          })),
+        )?;
 
         source.push_str(&source_with_loading);
       } else {
@@ -322,6 +340,8 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
             "_output_dir": &root_output_dir,
+            "_installed_chunks": installed_chunks,
+            "_install_chunk": install_chunk,
           })),
         )?;
 
@@ -332,20 +352,27 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     if with_external_install_chunk {
       let source_with_external_install_chunk = runtime_template.render(
         &self.template_id(TemplateId::WithExternalInstallChunk),
-        None,
+        Some(serde_json::json!({
+          "_install_chunk": install_chunk,
+        })),
       )?;
 
       source.push_str(&source_with_external_install_chunk);
     }
 
     if with_hmr {
-      let source_with_hmr =
-        runtime_template.render(&self.template_id(TemplateId::WithHmr), None)?;
+      let source_with_hmr = runtime_template.render(
+        &self.template_id(TemplateId::WithHmr),
+        Some(serde_json::json!({
+          "_load_update_chunk": load_update_chunk,
+        })),
+      )?;
 
       source.push_str(&source_with_hmr);
       let hmr_runtime = generate_javascript_hmr_runtime(
         &self.template_id(TemplateId::HmrRuntime),
         "require",
+        runtime_mode,
         runtime_template,
       )?;
       source.push_str(&hmr_runtime);

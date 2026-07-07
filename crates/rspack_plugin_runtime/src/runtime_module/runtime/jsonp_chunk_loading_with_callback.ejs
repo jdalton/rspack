@@ -4,7 +4,7 @@ var __rspack_jsonp = <%- basicFunction("parentChunkLoadingFunction, data") %> {
 	// add "moreModules" to the modules object,
 	// then flag all "chunkIds" as loaded and fire callback
 	var moduleId, chunkId, i = 0;
-	if (chunkIds.some(<%- returningFunction("jsonpInstalledChunks[id] !== 0", "id") %>)) {
+	if (chunkIds.some(<%- returningFunction(_installed_chunks + "[id] !== 0", "id") %>)) {
 		for (moduleId in moreModules) {
 			if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
 				<%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
@@ -16,18 +16,18 @@ var __rspack_jsonp = <%- basicFunction("parentChunkLoadingFunction, data") %> {
 	for (; i < chunkIds.length; i++) {
 		chunkId = chunkIds[i];
 		if (
-			<%- HAS_OWN_PROPERTY %>(jsonpInstalledChunks, chunkId) &&
-			jsonpInstalledChunks[chunkId]
+			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
+			<%- _installed_chunks %>[chunkId]
 		) {
-			jsonpInstalledChunks[chunkId][0]();
+			<%- _installed_chunks %>[chunkId][0]();
 		}
-		jsonpInstalledChunks[chunkId] = 0;
+		<%- _installed_chunks %>[chunkId] = 0;
 	}
 	<% if (_with_on_chunk_load) { %>
 	return <%- weak(ON_CHUNKS_LOADED) %>(result);
 	<% } %>
 };
 
-var jsonpChunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
-jsonpChunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
-jsonpChunkLoadingGlobal.push = __rspack_jsonp.bind(null, jsonpChunkLoadingGlobal.push.bind(jsonpChunkLoadingGlobal));
+var <%- _chunk_loading_global %> = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
+<%- _chunk_loading_global %>.forEach(__rspack_jsonp.bind(null, 0));
+<%- _chunk_loading_global %>.push = __rspack_jsonp.bind(null, <%- _chunk_loading_global %>.push.bind(<%- _chunk_loading_global %>));

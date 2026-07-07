@@ -7,7 +7,7 @@ use rspack_core::{
   chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 
-use crate::extract_runtime_globals_from_ejs;
+use crate::{extract_runtime_globals_from_ejs, runtime_conditioned_name};
 
 static CHUNK_PRELOAD_TRIGGER_TEMPLATE: &str = include_str!("runtime/chunk_preload_trigger.ejs");
 static CHUNK_PRELOAD_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
@@ -43,6 +43,11 @@ impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
       self.id(),
       Some(serde_json::json!({
         "_chunk_map": &self.chunk_map,
+        "_chunk_to_children_map": runtime_conditioned_name(
+          context.compilation.options.experiments.runtime_mode,
+          "chunkToChildrenMap",
+          "chunkPreloadChunkToChildrenMap",
+        ),
       })),
     )?;
 

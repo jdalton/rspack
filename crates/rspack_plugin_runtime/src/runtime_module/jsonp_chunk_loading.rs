@@ -12,7 +12,8 @@ use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
-    get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
+    get_initial_chunk_ids, render_hmr_runtime_state_expression, runtime_conditioned_name,
+    stringify_chunks,
   },
 };
 
@@ -289,6 +290,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
+    let runtime_mode = compilation.options.experiments.runtime_mode;
+    let installed_chunks =
+      runtime_conditioned_name(runtime_mode, "installedChunks", "jsonpInstalledChunks");
+    let load_update_chunk =
+      runtime_conditioned_name(runtime_mode, "loadUpdateChunk", "jsonpLoadUpdateChunk");
+    let chunk_loading_global = runtime_conditioned_name(
+      runtime_mode,
+      "chunkLoadingGlobal",
+      "jsonpChunkLoadingGlobal",
+    );
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
 
@@ -312,7 +323,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
-      var jsonpInstalledChunks = {}{};
+      var {installed_chunks} = {}{};
       "#,
       match with_hmr {
         true => {
@@ -326,12 +337,13 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if with_loading {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-        "jsonpInstalledChunks[chunkId] = 0;".to_string()
+        format!("{installed_chunks}[chunkId] = 0;")
       } else {
         runtime_template.render(
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
+            "_installed_chunks": installed_chunks,
             "_fetch_priority": if with_fetch_priority {
                ", fetchPriority"
             } else {
@@ -383,6 +395,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_js_matcher": &js_matcher,
           "_link_prefetch": &res.code,
+          "_installed_chunks": installed_chunks,
         })),
       )?;
 
@@ -417,6 +430,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_js_matcher": &js_matcher,
           "_link_preload": &res.code,
+          "_installed_chunks": installed_chunks,
         })),
       )?;
 
@@ -428,12 +442,14 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         .render(&self.template_id(TemplateId::WithHmr), Some(serde_json::json!({
           "_global_object": &compilation.options.output.global_object,
           "_hot_update_global": &rspack_util::json_stringify_str(&compilation.options.output.hot_update_global),
+          "_load_update_chunk": load_update_chunk,
         })))?;
 
       source.push_str(&source_with_hmr);
       let hmr_runtime = generate_javascript_hmr_runtime(
         &self.template_id(TemplateId::HmrRuntime),
         "jsonp",
+        runtime_mode,
         runtime_template,
       )?;
       source.push_str(&hmr_runtime);
@@ -447,8 +463,12 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_on_chunk_load {
-      let source_with_on_chunk_load =
-        runtime_template.render(&self.template_id(TemplateId::WithOnChunkLoad), None)?;
+      let source_with_on_chunk_load = runtime_template.render(
+        &self.template_id(TemplateId::WithOnChunkLoad),
+        Some(serde_json::json!({
+          "_installed_chunks": installed_chunks,
+        })),
+      )?;
 
       source.push_str(&source_with_on_chunk_load);
     }
@@ -462,6 +482,8 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::WithCallback),
         Some(serde_json::json!({
           "_chunk_loading_global_expr": &chunk_loading_global_expr,
+          "_chunk_loading_global": chunk_loading_global,
+          "_installed_chunks": installed_chunks,
           "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;

@@ -5,6 +5,7 @@ use rspack_core::{
   SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::Result;
 use rspack_util::{
@@ -75,6 +76,18 @@ pub fn render_hmr_runtime_state_expression(
     runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
   };
   format!("{state_prefix}_{key}")
+}
+
+pub fn runtime_conditioned_name(
+  runtime_mode: RuntimeMode,
+  webpack_name: &'static str,
+  rspack_name: &'static str,
+) -> &'static str {
+  if matches!(runtime_mode, RuntimeMode::Rspack) {
+    rspack_name
+  } else {
+    webpack_name
+  }
 }
 
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
@@ -249,16 +262,52 @@ fn stringify_map<T: std::fmt::Display>(entries: &mut [(&ChunkId, T)]) -> String 
 pub fn generate_javascript_hmr_runtime(
   key: &str,
   method: &str,
+  runtime_mode: RuntimeMode,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<String> {
-  let hmr_name_prefix = method;
+  let installed_chunks = runtime_conditioned_name(
+    runtime_mode,
+    "installedChunks",
+    match method {
+      "jsonp" => "jsonpInstalledChunks",
+      "importScripts" => "importScriptsInstalledChunks",
+      "module" => "moduleInstalledChunks",
+      "readFileVm" => "readFileVmInstalledChunks",
+      "require" => "requireInstalledChunks",
+      _ => "installedChunks",
+    },
+  );
+  let load_update_chunk = runtime_conditioned_name(
+    runtime_mode,
+    "loadUpdateChunk",
+    match method {
+      "jsonp" => "jsonpLoadUpdateChunk",
+      "importScripts" => "importScriptsLoadUpdateChunk",
+      "module" => "moduleLoadUpdateChunk",
+      "readFileVm" => "readFileVmLoadUpdateChunk",
+      "require" => "requireLoadUpdateChunk",
+      _ => "loadUpdateChunk",
+    },
+  );
+  let apply_handler = runtime_conditioned_name(
+    runtime_mode,
+    "applyHandler",
+    match method {
+      "jsonp" => "jsonpApplyHandler",
+      "importScripts" => "importScriptsApplyHandler",
+      "module" => "moduleApplyHandler",
+      "readFileVm" => "readFileVmApplyHandler",
+      "require" => "requireApplyHandler",
+      _ => "applyHandler",
+    },
+  );
   runtime_template.render(
     key,
     Some(serde_json::json!({
       "_loading_method": method,
-      "_installed_chunks": format!("{hmr_name_prefix}InstalledChunks"),
-      "_load_update_chunk": format!("{hmr_name_prefix}LoadUpdateChunk"),
-      "_apply_handler": format!("{hmr_name_prefix}ApplyHandler"),
+      "_installed_chunks": installed_chunks,
+      "_load_update_chunk": load_update_chunk,
+      "_apply_handler": apply_handler,
       "_is_hot_test": is_hot_test(),
     })),
   )

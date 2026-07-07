@@ -1,9 +1,9 @@
 <%- ENSURE_CHUNK_HANDLERS %>.i = <%- basicFunction("chunkId, promises") %> {
     <% if (_js_matcher == "false") { %>
-    importScriptsInstalledChunks[chunkId] = 1;
+    <%- _installed_chunks %>[chunkId] = 1;
     <% } else { %>
     // "1" is the signal for "already loaded
-    if (!importScriptsInstalledChunks[chunkId]) {
+    if (!<%- _installed_chunks %>[chunkId]) {
         if (<%- _js_matcher %>) {
             <% if (_with_create_script_url) { %>
             importScripts(<%- weak(CREATE_SCRIPT_URL) %>(<%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)));

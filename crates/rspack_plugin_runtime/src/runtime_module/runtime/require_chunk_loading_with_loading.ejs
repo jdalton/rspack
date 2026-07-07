@@ -1,4 +1,4 @@
 // require() chunk loading for javascript
 <%- ENSURE_CHUNK_HANDLERS %>.require = <%- basicFunction("chunkId, promises") %> {
-  requireInstalledChunks[chunkId] = 1;
+  <%- _installed_chunks %>[chunkId] = 1;
 }

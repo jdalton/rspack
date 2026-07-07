@@ -9,7 +9,7 @@ use rspack_core::{
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   chunk_has_css, extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
-  stringify_chunks,
+  runtime_conditioned_name, stringify_chunks,
 };
 use rspack_util::json_stringify;
 
@@ -266,6 +266,15 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       }
 
       let environment = &compilation.options.output.environment;
+      let runtime_mode = compilation.options.experiments.runtime_mode;
+      let installed_chunks =
+        runtime_conditioned_name(runtime_mode, "installedChunks", "cssInstalledChunks");
+      let load_stylesheet =
+        runtime_conditioned_name(runtime_mode, "loadStylesheet", "cssLoadStylesheet");
+      let apply_handler = runtime_conditioned_name(runtime_mode, "applyHandler", "cssApplyHandler");
+      let old_tags = runtime_conditioned_name(runtime_mode, "oldTags", "cssOldTags");
+      let new_tags = runtime_conditioned_name(runtime_mode, "newTags", "cssNewTags");
+      let text_key = runtime_conditioned_name(runtime_mode, "cssTextKey", "cssTextKeyOfLink");
       let is_neutral_platform = compilation.platform.is_neutral();
       let with_prefetch = with_css_modules
         && runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
@@ -303,7 +312,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         // One entry initial chunk maybe is other entry dynamic chunk, so here
         // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
         source.push_str(&format!(
-          "var cssInstalledChunks = {};\n",
+          "var {installed_chunks} = {};\n",
           &stringify_chunks(&initial_chunk_ids, 0)
         ));
 
@@ -316,6 +325,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               CrossOriginLoading::Enable(cross_origin) => cross_origin.clone(),
             },
             "_unique_name": unique_name,
+            "_load_stylesheet": load_stylesheet,
           })),
         )?;
 
@@ -339,6 +349,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             "_unique_name": unique_name,
             "_create_link": &create_link.code,
             "_chunk_load_timeout": &chunk_load_timeout,
+            "_load_stylesheet": load_stylesheet,
           })),
         )?;
         source.push_str(&raw_source);
@@ -348,6 +359,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             &self.template_id(TemplateId::WithLoading),
             Some(serde_json::json!({
               "_css_matcher": &has_css_matcher.render("chunkId"),
+              "_installed_chunks": installed_chunks,
+              "_load_stylesheet": load_stylesheet,
               "_is_neutral_platform": is_neutral_platform
             })),
           )?;
@@ -380,6 +393,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             Some(serde_json::json!({
               "_css_matcher": &has_css_matcher.render("chunkId"),
               "_create_prefetch_link": &link_prefetch.code,
+              "_installed_chunks": installed_chunks,
               "_is_neutral_platform": is_neutral_platform
             })),
           )?;
@@ -412,6 +426,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             Some(serde_json::json!({
               "_css_matcher": &has_css_matcher.render("chunkId"),
               "_create_preload_link": &link_preload.code,
+              "_installed_chunks": installed_chunks,
               "_is_neutral_platform": is_neutral_platform
             })),
           )?;
@@ -422,6 +437,11 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let source_with_hmr = context.runtime_template.render(
             &self.template_id(TemplateId::WithHmr),
             Some(serde_json::json!({
+              "_load_stylesheet": load_stylesheet,
+              "_apply_handler": apply_handler,
+              "_old_tags": old_tags,
+              "_new_tags": new_tags,
+              "_text_key": text_key,
               "_is_neutral_platform": is_neutral_platform
             })),
           )?;
