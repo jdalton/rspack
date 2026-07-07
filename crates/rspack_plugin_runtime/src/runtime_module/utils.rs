@@ -265,42 +265,16 @@ pub fn generate_javascript_hmr_runtime(
   runtime_mode: RuntimeMode,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<String> {
-  let installed_chunks = runtime_conditioned_name(
-    runtime_mode,
-    "installedChunks",
-    match method {
-      "jsonp" => "jsonpInstalledChunks",
-      "importScripts" => "importScriptsInstalledChunks",
-      "module" => "moduleInstalledChunks",
-      "readFileVm" => "readFileVmInstalledChunks",
-      "require" => "requireInstalledChunks",
-      _ => "installedChunks",
-    },
-  );
-  let load_update_chunk = runtime_conditioned_name(
-    runtime_mode,
-    "loadUpdateChunk",
-    match method {
-      "jsonp" => "jsonpLoadUpdateChunk",
-      "importScripts" => "importScriptsLoadUpdateChunk",
-      "module" => "moduleLoadUpdateChunk",
-      "readFileVm" => "readFileVmLoadUpdateChunk",
-      "require" => "requireLoadUpdateChunk",
-      _ => "loadUpdateChunk",
-    },
-  );
-  let apply_handler = runtime_conditioned_name(
-    runtime_mode,
-    "applyHandler",
-    match method {
-      "jsonp" => "jsonpApplyHandler",
-      "importScripts" => "importScriptsApplyHandler",
-      "module" => "moduleApplyHandler",
-      "readFileVm" => "readFileVmApplyHandler",
-      "require" => "requireApplyHandler",
-      _ => "applyHandler",
-    },
-  );
+  let hmr_name = |webpack_name: &str, rspack_suffix: &str| {
+    if matches!(runtime_mode, RuntimeMode::Rspack) {
+      format!("{method}{rspack_suffix}")
+    } else {
+      webpack_name.to_string()
+    }
+  };
+  let installed_chunks = hmr_name("installedChunks", "InstalledChunks");
+  let load_update_chunk = hmr_name("loadUpdateChunk", "LoadUpdateChunk");
+  let apply_handler = hmr_name("applyHandler", "ApplyHandler");
   runtime_template.render(
     key,
     Some(serde_json::json!({
