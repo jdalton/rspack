@@ -5,7 +5,7 @@ use rspack_core::{
   RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::{extract_runtime_globals_from_ejs, runtime_conditioned_name};
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::json_stringify_str;
 
 use super::consume_shared_plugin::ConsumeVersion;
@@ -231,29 +231,14 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       }
       return Ok(source);
     }
-    let installed_modules = runtime_conditioned_name(
-      compilation.options.experiments.runtime_mode,
-      "installedModules",
-      "consumeSharedInstalledModules",
-    );
-    let render_data = Some(serde_json::json!({
-      "_installed_modules": installed_modules,
-    }));
-    source += &runtime_template.render(
-      &self.get_template_id(TemplateId::Common),
-      render_data.clone(),
-    )?;
+    source += &runtime_template.render(&self.get_template_id(TemplateId::Common), None)?;
     if !initial_consumes.is_empty() {
-      source += &runtime_template.render(
-        &self.get_template_id(TemplateId::Initial),
-        render_data.clone(),
-      )?;
+      source += &runtime_template.render(&self.get_template_id(TemplateId::Initial), None)?;
     }
     if ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk_ukey)
       .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     {
-      source +=
-        &runtime_template.render(&self.get_template_id(TemplateId::Loading), render_data)?;
+      source += &runtime_template.render(&self.get_template_id(TemplateId::Loading), None)?;
     }
     Ok(source)
   }

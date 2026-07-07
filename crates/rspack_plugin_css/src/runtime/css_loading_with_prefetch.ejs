@@ -1,6 +1,6 @@
 <%- PREFETCH_CHUNK_HANDLERS %>.s =<%- basicFunction("chunkId") %> {
-  if ((!<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) || <%- _installed_chunks %>[chunkId] === undefined) && <%- _css_matcher %> ) {
-    <%- _installed_chunks %>[chunkId] = null;
+  if ((!<%- HAS_OWN_PROPERTY %>(cssInstalledChunks, chunkId) || cssInstalledChunks[chunkId] === undefined) && <%- _css_matcher %> ) {
+    cssInstalledChunks[chunkId] = null;
     <% if (_is_neutral_platform) { %>if (typeof document === 'undefined') return;<% } %>
 
     <%- _create_prefetch_link %>

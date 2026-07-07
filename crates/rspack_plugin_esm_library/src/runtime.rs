@@ -3,7 +3,6 @@ use rspack_core::{
   RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, impl_runtime_module, property_access,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
-use rspack_plugin_runtime::runtime_conditioned_name;
 use rspack_util::json_stringify_str;
 
 #[impl_runtime_module]
@@ -153,32 +152,28 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
       })
       .collect::<Vec<_>>();
     chunk_imports.sort_unstable();
-    let runtime_mode = compilation.options.experiments.runtime_mode;
-    let installed_chunks =
-      runtime_conditioned_name(runtime_mode, "installedChunks", "esmInstalledChunks");
-    let chunk_map = runtime_conditioned_name(runtime_mode, "chunkMap", "esmChunkMap");
 
     Ok(format!(
-      r#"var {installed_chunks} = {{}};
-var {chunk_map} = {{
+      r#"var esmInstalledChunks = {{}};
+var esmChunkMap = {{
 {chunk_imports}
 }};
 {ensure_chunk_handlers}.j = function(chunkId, promises) {{
-	var installedChunkData = {installed_chunks}[chunkId];
+	var installedChunkData = esmInstalledChunks[chunkId];
 	if(installedChunkData === 0) return;
 	if(installedChunkData) {{
 		promises.push(installedChunkData);
 		return;
 	}}
-	var loadChunk = {chunk_map}[chunkId];
+	var loadChunk = esmChunkMap[chunkId];
 	if(!loadChunk) return;
 	var promise = loadChunk().then(function() {{
-		{installed_chunks}[chunkId] = 0;
+		esmInstalledChunks[chunkId] = 0;
 	}}, function(error) {{
-		delete {installed_chunks}[chunkId];
+		delete esmInstalledChunks[chunkId];
 		throw error;
 	}});
-	{installed_chunks}[chunkId] = promise;
+	esmInstalledChunks[chunkId] = promise;
 	promises.push(promise);
 }};
 "#,

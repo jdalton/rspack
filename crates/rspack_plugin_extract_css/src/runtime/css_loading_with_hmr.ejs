@@ -1,24 +1,24 @@
-var <%- _old_tags %> = [];
-var <%- _new_tags %> = [];
-var <%- _text_key %> = function (link) {
+var extractCssOldTags = [];
+var extractCssNewTags = [];
+var extractCssTextKey = function (link) {
 	return Array.from(link.sheet.cssRules, function (r) { return r.cssText; }).join();
 }
-var <%- _apply_handler %> = function (options) {
+var extractCssApplyHandler = function (options) {
 	return {
 		dispose: function () {},
 		apply: function () {
-			for (var i = 0; i < <%- _new_tags %>.length; i++) <%- _new_tags %>[i].sheet.disabled = false;
-			for (var i = 0; i < <%- _old_tags %>.length; i++) {
-				var oldTag = <%- _old_tags %>[i];
+			for (var i = 0; i < extractCssNewTags.length; i++) extractCssNewTags[i].sheet.disabled = false;
+			for (var i = 0; i < extractCssOldTags.length; i++) {
+				var oldTag = extractCssOldTags[i];
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
-			<%- _old_tags %>.length = 0;
-			<%- _new_tags %>.length = 0;
+			extractCssOldTags.length = 0;
+			extractCssNewTags.length = 0;
 		}
 	}
 }
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList) {
-	applyHandlers.push(<%- _apply_handler %>);
+	applyHandlers.push(extractCssApplyHandler);
 	var seen = {};
 	chunkIds.forEach(function (chunkId) {
 		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
@@ -26,10 +26,10 @@ var <%- _apply_handler %> = function (options) {
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
-		var oldTag = <%- _find_stylesheet %>(href, fullhref);
+		var oldTag = extractCssFindStylesheet(href, fullhref);
 		if (!oldTag) return;
 		promises.push(new Promise(function (resolve, reject) {
-			var tag = <%- _create_stylesheet %>(
+			var tag = extractCssCreateStylesheet(
 				chunkId,
 
 				/**
@@ -40,14 +40,14 @@ var <%- _apply_handler %> = function (options) {
 				oldTag,
 				function () {
 					try {
-						if (<%- _text_key %>(oldTag) === <%- _text_key %>(tag)) {
+						if (extractCssTextKey(oldTag) === extractCssTextKey(tag)) {
 							if (tag.parentNode) tag.parentNode.removeChild(tag);
 							return resolve();
 						}
 					} catch (e) {}
 					tag.sheet.disabled = true;
-					<%- _old_tags %>.push(oldTag);
-					<%- _new_tags %>.push(tag);
+					extractCssOldTags.push(oldTag);
+					extractCssNewTags.push(tag);
 					resolve();
 				},
 				reject

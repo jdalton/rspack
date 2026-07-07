@@ -9,7 +9,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements, runtime_conditioned_name,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -250,21 +250,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
-    let runtime_mode = compilation.options.experiments.runtime_mode;
-    let create_stylesheet = runtime_conditioned_name(
-      runtime_mode,
-      "createStylesheet",
-      "extractCssCreateStylesheet",
-    );
-    let find_stylesheet =
-      runtime_conditioned_name(runtime_mode, "findStylesheet", "extractCssFindStylesheet");
-    let load_stylesheet =
-      runtime_conditioned_name(runtime_mode, "loadStylesheet", "extractCssLoadStylesheet");
-    let apply_handler =
-      runtime_conditioned_name(runtime_mode, "applyHandler", "extractCssApplyHandler");
-    let old_tags = runtime_conditioned_name(runtime_mode, "oldTags", "extractCssOldTags");
-    let new_tags = runtime_conditioned_name(runtime_mode, "newTags", "extractCssNewTags");
-    let text_key = runtime_conditioned_name(runtime_mode, "cssTextKey", "extractCssTextKey");
 
     if !with_hmr && !with_loading {
       return Ok(String::new());
@@ -327,10 +312,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           } else {
             document.head.appendChild(linkTag);
           }".to_string(),
-        },
-        "_create_stylesheet": create_stylesheet,
-        "_find_stylesheet": find_stylesheet,
-        "_load_stylesheet": load_stylesheet,
+        }
       })),
     )?;
 
@@ -368,8 +350,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
                 })
                 .sorted_unstable()
                 .collect::<String>()
-            ),
-            "_load_stylesheet": load_stylesheet,
+            )
           })),
         )?;
         res.push(loading);
@@ -379,17 +360,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     }
 
     if with_hmr {
-      let hmr = runtime_template.render(
-        &self.template_id(TemplateId::WithHmr),
-        Some(serde_json::json!({
-          "_create_stylesheet": create_stylesheet,
-          "_find_stylesheet": find_stylesheet,
-          "_apply_handler": apply_handler,
-          "_old_tags": old_tags,
-          "_new_tags": new_tags,
-          "_text_key": text_key,
-        })),
-      )?;
+      let hmr = runtime_template.render(&self.template_id(TemplateId::WithHmr), None)?;
       res.push(hmr);
     } else {
       res.push("// no hmr".to_string());

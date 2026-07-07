@@ -3,16 +3,16 @@
 	var chunkMapping = <%- REQUIRE_SCOPE %>.consumesLoadingData.chunkMapping;
 	if(<%- HAS_OWN_PROPERTY %>(chunkMapping, chunkId)) {
 		chunkMapping[chunkId].forEach(function(id) {
-			if(<%- HAS_OWN_PROPERTY %>(<%- _installed_modules %>, id)) return promises.push(<%- _installed_modules %>[id]);
+			if(<%- HAS_OWN_PROPERTY %>(consumeSharedInstalledModules, id)) return promises.push(consumeSharedInstalledModules[id]);
 			var onFactory = function(factory) {
-				<%- _installed_modules %>[id] = 0;
+				consumeSharedInstalledModules[id] = 0;
 				<%- MODULE_FACTORIES %>[id] = function(module) {
 					delete <%- MODULE_CACHE %>[id];
 					module.exports = factory();
 				}
 			};
 			var onError = function(error) {
-				delete <%- _installed_modules %>[id];
+				delete consumeSharedInstalledModules[id];
 				<%- MODULE_FACTORIES %>[id] = function(module) {
 					delete <%- MODULE_CACHE %>[id];
 					throw error;
@@ -21,7 +21,7 @@
 			try {
 				var promise = resolveHandler(moduleIdToConsumeDataMapping[id])();
 				if(promise.then) {
-					promises.push(<%- _installed_modules %>[id] = promise.then(onFactory)['catch'](onError));
+					promises.push(consumeSharedInstalledModules[id] = promise.then(onFactory)['catch'](onError));
 				} else onFactory(promise);
 			} catch(e) { onError(e); }
 		});

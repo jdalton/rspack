@@ -11,8 +11,7 @@ use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
-    get_initial_chunk_ids, render_hmr_runtime_state_expression, runtime_conditioned_name,
-    stringify_chunks,
+    get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
 };
 
@@ -207,29 +206,6 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     let with_callback = runtime_requirements.contains(RuntimeGlobals::CHUNK_CALLBACK);
-    let runtime_mode = compilation.options.experiments.runtime_mode;
-    let installed_chunks = runtime_conditioned_name(
-      runtime_mode,
-      "installedChunks",
-      "importScriptsInstalledChunks",
-    );
-    let install_chunk =
-      runtime_conditioned_name(runtime_mode, "installChunk", "importScriptsInstallChunk");
-    let chunk_loading_global = runtime_conditioned_name(
-      runtime_mode,
-      "chunkLoadingGlobal",
-      "importScriptsChunkLoadingGlobal",
-    );
-    let parent_chunk_loading_function = runtime_conditioned_name(
-      runtime_mode,
-      "parentChunkLoadingFunction",
-      "importScriptsParentChunkLoadingFunction",
-    );
-    let load_update_chunk = runtime_conditioned_name(
-      runtime_mode,
-      "loadUpdateChunk",
-      "importScriptsLoadUpdateChunk",
-    );
 
     let condition_map = compilation
       .build_chunk_graph_artifact
@@ -252,14 +228,14 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     if with_hmr {
       let state_expression = render_hmr_runtime_state_expression(runtime_template, "importScripts");
       source.push_str(&format!(
-        "var {installed_chunks} = {} = {} || {};\n",
+        "var importScriptsInstalledChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
         &stringify_chunks(&initial_chunks, 1)
       ));
     } else {
       source.push_str(&format!(
-        "var {installed_chunks} = {};\n",
+        "var importScriptsInstalledChunks = {};\n",
         &stringify_chunks(&initial_chunks, 1)
       ));
     }
@@ -272,10 +248,6 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
             "{}[\"{}\"]",
             &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
           ),
-          "_chunk_loading_global": chunk_loading_global,
-          "_parent_chunk_loading_function": parent_chunk_loading_function,
-          "_installed_chunks": installed_chunks,
-          "_install_chunk": install_chunk,
         })),
       )?;
 
@@ -289,7 +261,6 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_js_matcher": has_js_matcher.render("chunkId"),
           "_with_create_script_url": self.with_create_script_url,
-          "_installed_chunks": installed_chunks,
         })),
       )?;
       source.push_str(&render_source);
@@ -300,13 +271,11 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         "_with_create_script_url": self.with_create_script_url,
         "_global_object": &compilation.options.output.global_object.as_str(),
         "_hot_update_global": &rspack_util::json_stringify_str(&compilation.options.output.hot_update_global),
-        "_load_update_chunk": load_update_chunk,
       })))?;
       source.push_str(&source_with_hmr);
       let hmr_runtime = generate_javascript_hmr_runtime(
         &self.template_id(TemplateId::HmrRuntime),
         "importScripts",
-        runtime_mode,
         runtime_template,
       )?;
       source.push_str(&hmr_runtime);

@@ -5,7 +5,6 @@ use rspack_core::{
   SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
-  runtime_mode::RuntimeMode,
 };
 use rspack_error::Result;
 use rspack_util::{
@@ -76,18 +75,6 @@ pub fn render_hmr_runtime_state_expression(
     runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
   };
   format!("{state_prefix}_{key}")
-}
-
-pub fn runtime_conditioned_name(
-  runtime_mode: RuntimeMode,
-  webpack_name: &'static str,
-  rspack_name: &'static str,
-) -> &'static str {
-  if matches!(runtime_mode, RuntimeMode::Rspack) {
-    rspack_name
-  } else {
-    webpack_name
-  }
 }
 
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
@@ -262,26 +249,14 @@ fn stringify_map<T: std::fmt::Display>(entries: &mut [(&ChunkId, T)]) -> String 
 pub fn generate_javascript_hmr_runtime(
   key: &str,
   method: &str,
-  runtime_mode: RuntimeMode,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<String> {
-  let hmr_name = |webpack_name: &str, rspack_suffix: &str| {
-    if matches!(runtime_mode, RuntimeMode::Rspack) {
-      format!("{method}{rspack_suffix}")
-    } else {
-      webpack_name.to_string()
-    }
-  };
-  let installed_chunks = hmr_name("installedChunks", "InstalledChunks");
-  let load_update_chunk = hmr_name("loadUpdateChunk", "LoadUpdateChunk");
-  let apply_handler = hmr_name("applyHandler", "ApplyHandler");
   runtime_template.render(
     key,
     Some(serde_json::json!({
       "_loading_method": method,
-      "_installed_chunks": installed_chunks,
-      "_load_update_chunk": load_update_chunk,
-      "_apply_handler": apply_handler,
+      "_installed_chunks": format!("{method}InstalledChunks"),
+      "_load_update_chunk": format!("{method}LoadUpdateChunk"),
       "_is_hot_test": is_hot_test(),
     })),
   )
