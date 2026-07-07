@@ -2,8 +2,9 @@ use std::sync::LazyLock;
 
 use rspack_core::{
   ChunkCodeTemplate, ChunkKind, ChunkUkey, Compilation, RuntimeGlobals, RuntimeProxyMetadata,
-  RuntimeVariable, SourceType, property_access,
+  RuntimeVariable, SourceType, property_access, render_lexical_declarations,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
+  runtime_module_owned_define_fields,
 };
 use rspack_error::Result;
 
@@ -113,9 +114,11 @@ pub async fn render_runtime_chunk_runtime_modules(
     }
   };
   let mut wrapped_sources = ConcatSource::default();
-  wrapped_sources.add(RawStringSource::from(
-    metadata.render_lexical_declarations(Some(&render_runtime_global)),
-  ));
+  wrapped_sources.add(RawStringSource::from(render_lexical_declarations(
+    (metadata.lexical_fields() | metadata.context_setter_fields())
+      .difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
+    Some(&render_runtime_global),
+  )));
   if metadata
     .lexical_fields()
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
@@ -215,9 +218,11 @@ pub async fn render_chunk_runtime_modules(
       })
   };
   let render_runtime_global = |runtime_global: RuntimeGlobals| render_context_field(runtime_global);
-  sources.add(RawStringSource::from(
-    metadata.render_lexical_declarations(Some(&render_runtime_global)),
-  ));
+  sources.add(RawStringSource::from(render_lexical_declarations(
+    (metadata.lexical_fields() | metadata.context_setter_fields())
+      .difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
+    Some(&render_runtime_global),
+  )));
 
   for (runtime_module_source, generated_requirements, context_requirements, _) in
     runtime_module_sources
@@ -314,9 +319,11 @@ pub async fn render_hot_update_chunk_runtime_modules(
         }
       })
   };
-  sources.add(RawStringSource::from(
-    metadata.render_lexical_declarations(Some(&render_context_field)),
-  ));
+  sources.add(RawStringSource::from(render_lexical_declarations(
+    (metadata.lexical_fields() | metadata.context_setter_fields())
+      .difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
+    Some(&render_context_field),
+  )));
   if metadata
     .lexical_fields()
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
@@ -420,9 +427,6 @@ fn runtime_context_current_chunk_metadata(
     metadata
       .runtime_module_requirements
       .insert(module_runtime_requirements.dependencies);
-    metadata
-      .context_setter_fields
-      .insert(module_runtime_requirements.define);
     metadata
       .force_context_fields
       .insert(module_runtime_requirements.force_context);

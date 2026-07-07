@@ -170,8 +170,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let mut dependencies = Self::get_runtime_requirements_basic();
     let mut weak = RuntimeGlobals::default();
     let mut define = RuntimeGlobals::default();
+    let mut force_context = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
-      define.insert(RuntimeGlobals::BASE_URI);
+      force_context.insert(RuntimeGlobals::BASE_URI);
     }
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_loading());
@@ -201,6 +202,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       dependencies,
       weak,
       define,
+      force_context,
       ..Default::default()
     }
   }
@@ -462,7 +464,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         r#"
         {} = {install_chunk};
         "#,
-        runtime_template.render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
+        runtime_template.render_runtime_global_definition(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
       ));
     } else {
       source.push_str("// no external install chunk\n");
