@@ -275,6 +275,8 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let old_tags = runtime_conditioned_name(runtime_mode, "oldTags", "cssOldTags");
       let new_tags = runtime_conditioned_name(runtime_mode, "newTags", "cssNewTags");
       let text_key = runtime_conditioned_name(runtime_mode, "cssTextKey", "cssTextKeyOfLink");
+      let unique_name_var =
+        runtime_conditioned_name(runtime_mode, "uniqueName", "cssLoadingUniqueName");
       let is_neutral_platform = compilation.platform.is_neutral();
       let with_prefetch = with_css_modules
         && runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS)
@@ -325,6 +327,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
               CrossOriginLoading::Enable(cross_origin) => cross_origin.clone(),
             },
             "_unique_name": unique_name,
+            "_unique_name_var": unique_name_var,
             "_load_stylesheet": load_stylesheet,
           })),
         )?;
@@ -347,6 +350,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_unique_name": unique_name,
+            "_unique_name_var": unique_name_var,
             "_create_link": &create_link.code,
             "_chunk_load_timeout": &chunk_load_timeout,
             "_load_stylesheet": load_stylesheet,
